@@ -180,7 +180,9 @@
                 "windows"
                 {
                     "offset"    "0EEh"
+                    // ja
                     "verify"    "\x77\x1B"
+                    // unconditional jmp
                     "patch"     "\xEB\x1B"
                 }
             }
