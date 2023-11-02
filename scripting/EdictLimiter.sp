@@ -5,9 +5,10 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-bool edictExists[2049];
-
 #define MAX_EDICTS 2048
+
+bool edictExists[MAX_EDICTS + 1];
+
 
 int edicts = 0;
 float nextActionIn = 0.0;
@@ -34,7 +35,7 @@ public Plugin myinfo =
     name        = "Edict Limiter",
     author      = "Poggu & https://sappho.io",
     description = "Prevents edict limit crashes",
-    version     = "3.0.4"
+    version     = "3.0.5"
 };
 
 public void OnMapEnd()
@@ -374,6 +375,8 @@ char ignoreEnts[][] =
     "instanced_scripted_scene",
     "tf_viewmodel",
     "beam",
+    "env_spritetrail",
+    "env_sprite",
 };
 
 void DoLowEntAction(int doAction = -1)
