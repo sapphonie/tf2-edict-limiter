@@ -25,6 +25,7 @@ jobs:
         run: |
           cd ./scripting
           pwd
+          mkdir ../plugins
           spcomp -i"./include/" EdictLimiter.sp -o ../plugins/EdictLimiter.smx
           ls -la
           cd ../
