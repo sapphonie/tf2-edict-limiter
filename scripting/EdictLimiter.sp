@@ -15,8 +15,10 @@ float nextActionIn = 0.0;
 float nextForwardIn = 0.0;
 float nextCleanupIn = 0.0;
 bool isBlocking = false;
+int isWindows = 0;
 
 Handle g_hAttemptTimer = INVALID_HANDLE;
+Handle g_hHudMessage;
 int g_iAttempts = 0;
 
 GlobalForward g_entityLockdownForward;
@@ -88,6 +90,8 @@ public void OnPluginStart()
     ed_aggressive_ent_culling   = CreateConVar("ed_aggressive_ent_culling",     "1", "1 - Enable aggressive culling of entities, 2 - enable HYPER AGGRESSIVE, and likely unstable methods of entity culling.", _, true, 0.0, false);
 
     DoGameData();
+
+    g_hHudMessage = CreateHudSynchronizer();
 }
 
 
@@ -122,11 +126,24 @@ void DoGameData()
     }
 
 
+    {
+        isWindows = hGameConf.GetOffset("WindowsOrLinux");
+        if(isWindows)
+        {
+            LogMessage("-> Running on Windows");
+            OFFS_num_edicts     = 0x1EC;
+            OFFS_max_edicts     = 0x1F0;
+            OFFS_free_edicts    = 0x1F4;
+        }
+    }
 
 
     // @sv - for sv.num_entities and other offsets
     {
-        sv = hGameConf.GetMemSig("sv");
+        if(isWindows)
+            sv = hGameConf.GetAddress("sv");
+        else
+            sv = hGameConf.GetMemSig("sv");
         if (!sv)
         {
             SetFailState("Couldn't find sv.");
@@ -377,6 +394,7 @@ char ignoreEnts[][] =
     "beam",
     "env_spritetrail",
     "env_sprite",
+    "vgui_screen",
 };
 
 void DoLowEntAction(int doAction = -1)
@@ -444,6 +462,7 @@ public MRESReturn CEntityFactoryDictionary__Create_Pre(Handle hReturn, Handle hP
                 StrEqual(classname, "tf_dropped_weapon")
              || StrEqual(classname, "tf_ragdoll")
              || StrEqual(classname, "halloween_souls_pack")
+             || StrEqual(classname, "tf_mann_vs_machine_stats")
         )
     )
     {
@@ -455,7 +474,6 @@ public MRESReturn CEntityFactoryDictionary__Create_Pre(Handle hReturn, Handle hP
 
     if (g_cvLowEdictCleanThreshold.IntValue > 0 && freeEdicts <= g_cvLowEdictCleanThreshold.IntValue && (nextCleanupIn <= GetGameTime() || nextCleanupIn == 0.0))
     {
-      nextCleanupIn = GetGameTime() + 5.0;
       DoEntCleanup();
     }
 
@@ -552,6 +570,7 @@ void DoEntCleanup()
             GlobalPrint("[Edict Limiter] Too many attempts, taking action.");
             DoLowEntAction();
         }
+        nextCleanupIn = GetGameTime() + 5.0;
         return;
     }
 
@@ -566,7 +585,10 @@ void DoEntCleanup()
         ents_nuked += NukeEntityClassname(uselessEntsHard, sizeof uselessEntsHard);
 
     if(g_iAttempts >= 2)
+    {
         ents_nuked += NukeEntityClassname(uselessEntsHarder, sizeof uselessEntsHarder);
+        nextCleanupIn = GetGameTime() + 1.0;
+    }
 
     GlobalPrint("[Edict Limiter] Nuked %i entities.", ents_nuked);
 }
@@ -841,7 +863,7 @@ void GlobalPrint(const char[] format, any ...)
     {
         if(IsClientInGame(i))
         {
-            ShowHudText(i, -1, "%s", message);
+            ShowSyncHudText(i, g_hHudMessage, "%s", message);
         }
     }
 
